@@ -1489,7 +1489,7 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
+#if defined( NEW_HENRY_CONSTANTS )					   
 #else									    
                               DD_Hstar_old  = 2.05e+6_fp,                   &
                               Henry_K0      = 7.10e+15_f8,                  &

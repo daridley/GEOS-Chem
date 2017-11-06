@@ -5845,11 +5845,11 @@
          WRITE( 6, '(a)'     ) REPEAT( '-', 70 )
 
          ! Loop over all wet-depositing species
-         DO N_WD = 1, NSOL
+         DO N_WD = 1, State_Chm%nWetDep
 
             ! GEt the corresponding advected species ID
             N = IDWETD(N_WD)
-
+            
             ! Get physical parameters from the species database object
             SpcInfo => State_Chm%SpcData(N)%Info 
 
@@ -5861,7 +5861,7 @@
             ENDIF
 
             ! Convert Henry's law CR parameter to string
-            IF ( SpcInfo%Henry_K0 > 0.0_f8 ) THEN
+            IF ( SpcInfo%Henry_CR > 0.0_f8 ) THEN
                WRITE( CR, '(es9.2)' ) SpcInfo%Henry_CR
             ELSE
                CR = '    -    '

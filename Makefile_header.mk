@@ -670,12 +670,12 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
+#    ifndef NEST
+#      $(error $(ERR_NEST))
+#    else
+#      NEST_NEEDED    :=1
       USER_DEFS      += -DGRID05x0625
-    endif
+#    endif
   endif
 
   # %%%%% 0.25 x 0.3125 %%%%%
