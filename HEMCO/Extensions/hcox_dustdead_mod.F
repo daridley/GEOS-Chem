@@ -182,7 +182,8 @@
       ! Fixed-size grid information
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
-
+      !this needs adding to input file switches (or based on settings)
+      LOGICAL, PARAMETER     :: LONLINEDUST = .TRUE.
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -206,6 +207,16 @@
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
+      USE Input_Opt_Mod,     ONLY : OptInput
+      USE CMN_SIZE_MOD                        ! Size parameters
+      USE TIME_MOD                            ! Date & time routines
+! NcdfUtil modules for netCDF I/O
+      USE m_netcdf_io_open                    ! netCDF open
+      USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
+      USE m_netcdf_io_read                    ! netCDF data reads
+      USE m_netcdf_io_close                   ! netCDF close
+
+      TYPE(OptInput), POINTER    :: Input_Opt  ! Input Options object
 !
 ! !INPUT PARAMETERS:
 !
@@ -286,6 +297,16 @@
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
       CHARACTER(LEN=255)     :: MSG
+! OFFLINE DUST PARAMETERS      
+      INTEGER                :: fA1          ! netCDF file ID
+      INTEGER                :: X, Y, T      ! netCDF file dimensions
+      INTEGER                :: YYYYMMDD, HHMMSS, cYr,cMt,cDy,cHr
+      INTEGER                :: II, JJ, TIME_INDEX
+      CHARACTER(LEN=255)     :: dir,nc_file,v_name
+      CHARACTER(LEN=4)       :: Yrs, Mts, Dys, hrs
+      CHARACTER(LEN=2)       :: STRBIN
+      INTEGER                :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays
+      REAL*4                 :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
       !=================================================================
       ! HCOX_DUSTDEAD_RUN begins here!
@@ -293,7 +314,7 @@
 
       ! Return if extension disabled 
       IF ( ExtState%DustDead <= 0 ) RETURN
-
+      
       ! Enter
       CALL HCO_ENTER( HcoState%Config%Err, 
      &               'HCOX_DustDead_Run (hcox_dustdead_mod.F90)', RC )
@@ -310,6 +331,10 @@
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
       ENDIF
+
+      !We now have a flag for offline dust
+      !may want to turn this into a compiler/input switch at some point
+      IF(LONLINEDUST.EQ..TRUE.) THEN
 
       !=================================================================
       ! Get pointers to gridded data imported through config. file
@@ -390,11 +415,11 @@
       ! Error check
       ERR = .FALSE.
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,     J,      P1,    P2,   PTHICK,  PMID, TLON        )
-!$OMP+PRIVATE( THLON, ULON,   VLON,  BHT2, Q_H2O,   ORO,  SNW_HGT_LQD )
-!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2, DUST_EMI_TOTAL    )
+!!!$OMP PARALLEL DO
+!!!$OMP+DEFAULT( SHARED )
+!!!$OMP+PRIVATE( I,     J,      P1,    P2,   PTHICK,  PMID, TLON        )
+!!!$OMP+PRIVATE( THLON, ULON,   VLON,  BHT2, Q_H2O,   ORO,  SNW_HGT_LQD )
+!!!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2, DUST_EMI_TOTAL    )
 
       ! Loop over latitudes
       DO J = 1, HcoState%NY 
@@ -417,6 +442,7 @@
 
             ! Temperature [K] at midpoint of surface layer 
             TLON(I)        = ExtState%TK%Arr%Val(I,J,1)
+!            TLON(I)        = ExtState%TMPU1%Arr%Val(I,J,1)
 
             ! Potential temperature [K] at midpoint 
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
@@ -439,7 +465,7 @@
             ! Snow [m H2O]. SNOWHGT is in kg H2O/m2, which is equivalent to
             ! mm H2O. Convert to m H2O here.
             SNW_HGT_LQD(I) = ExtState%SNOWHGT%Arr%Val(I,J) / 1000.d0
-
+!            write(6,*) "dud",I,Q_H2O(I),PMID(I),TLON(I),ULON(I),VLON(I)
             ! Dust tracer and increments
             DSRC(I,:) = 0.0d0
          ENDDO !I
@@ -485,6 +511,9 @@
 
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
+                  IF ((N.EQ.2).AND.(FLUX(I,J,N).GT.0d0)) THEN
+                   write(6,*) "DFLX:",I,J,N,FLUX(I,J,N)
+                  ENDIF
                ENDIF
 
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
@@ -498,13 +527,89 @@
             ENDDO !N
          ENDDO !I
       ENDDO !J 
-!$OMP END PARALLEL DO
+!!!$OMP END PARALLEL DO
 
-      ! Error check 
-      IF ( ERR ) THEN
-         RC = HCO_FAIL
-         RETURN 
-      ENDIF
+      ! Error check
+       IF ( ERR ) THEN
+          RC = HCO_FAIL
+          RETURN
+       ENDIF
+
+      ELSE 
+        !Read the offline emissions for the current hour
+        !Format to FLUX to match what the following code expects
+        ! Get emissions time step
+        DTSRCE = HcoState%TS_EMIS
+        CALL HcoClock_Get( am_I_Root, HcoState%Clock,
+     &                    cYYYY=cYr, cMM=cMt, cDD=cDy,
+     &                    cH=cHr, RC=RC )
+        YYYYMMDD  = cYr*10000 + cMt*100 + cDy
+        HHMMSS    = cHr*10000
+
+        ! Write datetime
+        WRITE( Yrs, '(i4.4)' ) cYr
+        WRITE( Mts, '(i2.2)' ) cMt
+        WRITE( Dys, '(i2.2)' ) cDy
+        WRITE( hrs, '(i2.2)' ) cHr
+        
+        ! replace time & date tokens in the file name
+        dir     = 'offline_dust/' // trim(Yrs) // '/'
+
+        ! Replace time & date tokens in the file name
+        nc_file = 'HEMCO_sa.diagnostics.' // trim(Yrs) // trim(Mts)
+     &            // trim(Dys) // trim(hrs) // '00.nc'
+
+        ! Construct complete file path
+        nc_file = TRIM( '/net/seurat/data/ctm/' ) // 
+     &            TRIM( dir ) // TRIM( nc_file )
+        write(6,*) 'dustnc: ',nc_file
+        ! Open netCDF file
+        CALL NcOp_Rd( fA1, TRIM( nc_file ) )
+
+        ! Read the dimensions from the netCDF file
+        CALL NcGet_DimLen( fA1, 'lon',   X )
+        CALL NcGet_DimLen( fA1, 'lat',   Y )
+        CALL NcGet_DimLen( fA1, 'time',  T )
+        write(6,*) 'dustdim: ',X,Y,T
+       !======================================================================
+       ! Read data from the netCDF file
+       !======================================================================
+       ! Find the proper time-slice to read from disk
+       time_index = ( HHMMSS / 10000 ) + 1
+
+       ! netCDF start & count indices
+       st3d      = (/ 1,     1,     1          /)
+       ct3d      = (/ IIPAR, JJPAR, 1          /)
+
+       ! Read emissions
+       DO N=1, 4
+        WRITE(STRBIN,'(I1)') N
+        v_name = "EMIS_DST" // TRIM(STRBIN)
+        CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+
+       !======================================================================
+       ! Regrid the NC data if necessary (might be high res)
+       !======================================================================
+!        CALL REGRID_MAPA2A ( am_I_Root, HcoState, NcArr, LonE, LatE,
+!     &                       CLct, RC )
+!
+
+
+        DO II=1,IIPAR
+        DO JJ=1,JJPAR
+         AREA_M2 = HcoState%Grid%AREA_M2%Val(II,JJ)
+         !emission timestep is 20min but the offline emissions
+         !are hourly, so fix to 60min when converting to kg/m2/s
+         !now saving out as kg/m2/s so no conversion needed here.
+         FLUX(II,JJ,N) = Q(II,JJ) !/ AREA_M2 / 3600d0
+         IF ((N.EQ.2).AND.(FLUX(II,JJ,N).GT.0d0)) THEN
+          write(6,*) 'DFLX:',II,JJ,N,FLUX(II,JJ,N)
+         ENDIF
+        ENDDO
+        ENDDO 
+       ENDDO
+       CALL NcCl( fA1 )
+      ENDIF !LONLINEDUST
 
       !=================================================================
       ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
@@ -913,6 +1018,7 @@
       ! Activate met fields used by this extension
       ExtState%SPHU%DoUse    = .TRUE.
       ExtState%TK%DoUse      = .TRUE.
+!      ExtState%TMPU1%DoUse   = .TRUE.
       ExtState%U10M%DoUse    = .TRUE.
       ExtState%V10M%DoUse    = .TRUE.
       ExtState%T2M%DoUse     = .TRUE.
@@ -5660,6 +5766,9 @@ c Fix up for negative argument, erf, etc.
       RETURN
 
 #endif
+!      IF (LONLINEDUST.EQ..FALSE.) THEN 
+       FLX_MSS_FDG_FCT = 1.0d0
+!      ENDIF
 
       ! Return to calling program
       END FUNCTION HCOX_DustDead_GetFluxTun

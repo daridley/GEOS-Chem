@@ -35,7 +35,7 @@ MODULE HCO_TYPES_MOD
 ! !PUBLIC PARAMETERS:
 !
   ! Maximum length of option name
-  INTEGER, PARAMETER       :: OPTLEN = 1023
+  INTEGER, PARAMETER       :: OPTLEN = 10000
 
   ! Cycle flags. Used to determine the temporal behavior of data
   ! fields. For example, data set to 'cycle' will be recycled if

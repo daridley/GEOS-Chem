@@ -668,10 +668,12 @@ CONTAINS
        ! Get Ext. Nr of used extension
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )
        IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustGinoux' )
-       IF ( ExtNr <= 0 ) THEN
-          CALL HCO_Error( 'Cannot find dust extension', RC, THISLOC=LOC )
-          RETURN      
-       ENDIF
+!      try commenting this out as we want to be able to run with dust on
+!      but without the dust extension (emissions are read in offline)
+!       IF ( ExtNr <= 0 ) THEN
+!          CALL HCO_Error( 'Cannot find dust extension', RC, THISLOC=LOC )
+!          RETURN      
+!       ENDIF
 
        ! Do for each dust bin
        DO I = 1, Input_Opt%N_DUST_BINS

@@ -624,7 +624,7 @@ CONTAINS
     LOGICAL             :: FOUND,   EOF
     CHARACTER(LEN=255)  :: MSG, LOC 
     CHARACTER(LEN=255)  :: MySpecFile 
-    CHARACTER(LEN=2047) :: DUM
+    CHARACTER(LEN=OPTLEN) :: DUM
 
     !=================================================================
     ! Model_GetSpecies begins here
@@ -856,7 +856,8 @@ CONTAINS
     CHARACTER(LEN=255)    :: LOC 
     CHARACTER(LEN=  1)    :: COL 
     CHARACTER(LEN=255)    :: MyGridFile 
-    CHARACTER(LEN=2047)   :: MSG, DUM
+    CHARACTER(LEN=2047)   :: MSG
+    CHARACTER(LEN=OPTLEN) :: DUM
 
     !=================================================================
     ! SET_GRID begins here
@@ -1711,7 +1712,8 @@ CONTAINS
     INTEGER             :: I,  N,   LNG, LOW
     LOGICAL             :: EOF, FOUND
     CHARACTER(LEN=  1)  :: COL
-    CHARACTER(LEN=255)  :: MSG, LOC, DUM
+    CHARACTER(LEN=255)  :: MSG, LOC
+    CHARACTER(LEN=OPTLEN) :: DUM
     CHARACTER(LEN=255)  :: MyTimeFile 
 
     !=================================================================

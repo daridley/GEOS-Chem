@@ -83,7 +83,7 @@ MODULE HCO_ExtList_Mod
 !
 ! !PRIVATE TYPES:
 !
-  ! Lenght of maximum token character length
+  ! Length of maximum token character length
   CHARACTER(LEN=OPTLEN), PARAMETER  :: EMPTYOPT = '---'
 
   !---------------------------------------------------------------------------
