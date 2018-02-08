@@ -5580,8 +5580,9 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
 
 #elif defined( MERRA2 ) && defined( GRID05x0625 )
-      !default
-      FLX_MSS_FDG_FCT = 4.9d-4 * 0.971141
+
+      !default for offline dust generation
+      FLX_MSS_FDG_FCT = 1.0d0 !4.9d-4 * 0.971141
 
 #if defined(NESTED_AS)
 
@@ -5678,9 +5679,6 @@ c Fix up for negative argument, erf, etc.
       RETURN
 
 #endif
-!      IF (LONLINEDUST.EQ..FALSE.) THEN 
-!       FLX_MSS_FDG_FCT = 1.0d0
-!      ENDIF
 
       ! Return to calling program
       END FUNCTION HCOX_DustDead_GetFluxTun
