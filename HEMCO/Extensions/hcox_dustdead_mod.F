@@ -442,7 +442,7 @@
 
             ! Temperature [K] at midpoint of surface layer 
             TLON(I)        = ExtState%TK%Arr%Val(I,J,1)
-!            TLON(I)        = ExtState%TMPU1%Arr%Val(I,J,1)
+!            TLON(I)        = ExtState%T2M%Arr%Val(I,J)
 
             ! Potential temperature [K] at midpoint 
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
@@ -465,9 +465,9 @@
             ! Snow [m H2O]. SNOWHGT is in kg H2O/m2, which is equivalent to
             ! mm H2O. Convert to m H2O here.
             SNW_HGT_LQD(I) = ExtState%SNOWHGT%Arr%Val(I,J) / 1000.d0
-!            write(6,*) "dud",I,Q_H2O(I),PMID(I),TLON(I),ULON(I),VLON(I)
             ! Dust tracer and increments
             DSRC(I,:) = 0.0d0
+
          ENDDO !I
 
          !==============================================================
@@ -511,9 +511,6 @@
 
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
-                  IF ((N.EQ.2).AND.(FLUX(I,J,N).GT.0d0)) THEN
-                   write(6,*) "DFLX:",I,J,N,FLUX(I,J,N)
-                  ENDIF
                ENDIF
 
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
@@ -1565,6 +1562,9 @@
       ! Adjust threshold friction velocity to account
       ! for moisture and roughness
       DO I = 1, HcoState%NX
+!       write(*,*) "WTHR",WND_FRC_THR_SLT(i),FRC_THR_NCR_WTR(i),
+!     &            FRC_THR_NCR_DRG(i)
+
          WND_FRC_THR_SLT(I) =      ! [m s-1] Threshold friction velocity
                                    !         for saltation
      &        WND_FRC_THR_SLT(i)   ! [m s-1] Threshold for dry, flat ground
@@ -1630,13 +1630,20 @@
       ! Now simply multiply by the GOCART source function.
       ! The vegetation effect has been eliminated in LND_FRC_MBL_GET
       ! and we also ignore MBL_BSN_FCT. (tdf, bmy, 1/25/07)
-      DO I = 1, HcoState%NX
+      DO I = 1, HcoState%NX     
+      IF (FLX_MSS_HRZ_SLT_TTL(I).GT.0.0d0) THEN
+!       write(*,*) "HFLX",FLX_MSS_HRZ_SLT_TTL(I),DNS_MDP(I),
+!     &            TPT_MDP(I),PRS_MDP(I),Q_H2O_VPR(I),
+!     &            WND_FRC_THR_SLT(I),WND_FRC_SLT(I),
+!     &            LND_FRC_MBL_SLICE(i),Inst%FLX_MSS_FDG_FCT,
+!     &            SRCE_FUNC_SLICE(I)
+      ENDIF
+
          FLX_MSS_HRZ_SLT_TTL(I) = FLX_MSS_HRZ_SLT_TTL(I) ! [kg m-2 s-1]
      &       * LND_FRC_MBL_SLICE(i)   ! [frc] Bare ground fraction
      &       * Inst%FLX_MSS_FDG_FCT   ! [frc] Global mass flux tuning
      &       * SRCE_FUNC_SLICE(I)     ! GOCART source function
       ENDDO
-
       !=================================================================
       ! Compute vertical dust mass flux, see Zender et al., expr. (11).
       !=================================================================
@@ -1649,7 +1656,7 @@
                                !            streamwise mass flux
      &    FLX_MSS_VRT_DST_TTL, ! O [kg/m2/s] Total vertical mass flux of dust
      &    MSS_FRC_CLY_SLICE )  ! I [frc] Mass fraction clay
-
+      
       !=================================================================
       ! Now, partition vertical dust mass flux into transport bins
       !
@@ -1694,7 +1701,10 @@
                ! what GEOS-CHEM wants is an increment in kg...So,
                ! multiply by DXYP [m2] and tm_adj [sec]
                !========================================================
-
+      IF ((FLX_MSS_VRT_DST(I,M).GT.0.0d0).AND.(M.EQ.2)) THEN
+!       write(*,*) "VFLX",FLX_MSS_VRT_DST(I,M),
+!     &           HcoState%Grid%AREA_M2%Val(I,LAT_IDX),TM_ADJ
+      ENDIF
                ! [kg/sec]
                Q_DST_TND_MBL(I,M) = FLX_MSS_VRT_DST(I,M)
      &            *HcoState%Grid%AREA_M2%Val(I,LAT_IDX)
@@ -3577,6 +3587,8 @@
 
          ! Added mobilisation constraint
          IF ( FLG_MBL(LON_IDX) ) THEN
+!            write(*,*) "THRS",LON_IDX,DNS_SLT,GRV_SFC,DMT_SLT_OPT,
+!     &        DNS_MDP(LON_IDX),DMT_SLT_OPT
             WND_FRC_THR_SLT(LON_IDX) =  SQRT(TMP1) * SQRT(ALPHA) ! [m s-1]
          ENDIF
       ENDDO
@@ -5669,6 +5681,8 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
 
 #elif defined( MERRA2 ) && defined( GRID05x0625 )
+      !default
+      FLX_MSS_FDG_FCT = 4.9d-4 * 0.971141
 
 #if defined(NESTED_AS)
 
@@ -5728,7 +5742,6 @@ c Fix up for negative argument, erf, etc.
       !----------------------------------------------------------------
       FLX_MSS_FDG_FCT = 4.9d-4 * 0.971141
 
-
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 
       !----------------------------------------------------------------
@@ -5767,7 +5780,7 @@ c Fix up for negative argument, erf, etc.
 
 #endif
 !      IF (LONLINEDUST.EQ..FALSE.) THEN 
-       FLX_MSS_FDG_FCT = 1.0d0
+!       FLX_MSS_FDG_FCT = 1.0d0
 !      ENDIF
 
       ! Return to calling program
