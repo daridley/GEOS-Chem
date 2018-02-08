@@ -668,8 +668,11 @@ CONTAINS
        ! Get Ext. Nr of used extension
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )
        IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustGinoux' )
-!      try commenting this out as we want to be able to run with dust on
-!      but without the dust extension (emissions are read in offline)
+
+!     Commented out so that when dust extension is turned off 
+!     then the model defaults to offline dust based on HEMCO_Config settings
+!     (these must be uncommented in the HEMCO_Config and the dust_emission_YYYYMMDDHH.nc
+!     offline emissions from HEMCO standalone must be created/downloaded (DAR 2018)  
 !       IF ( ExtNr <= 0 ) THEN
 !          CALL HCO_Error( 'Cannot find dust extension', RC, THISLOC=LOC )
 !          RETURN      
