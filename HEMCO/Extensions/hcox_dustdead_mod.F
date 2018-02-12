@@ -415,8 +415,12 @@
             PTHICK(I)      = ( P1 - P2 ) 
 
             ! Pressure at midpt of surface layer [Pa]
+#if defined( GEOS_FP )
+!           needs x100 as in hPa 
+            PMID(I)        = 100.0d0*( P1 + P2 ) / 2.0_hp
+#else
             PMID(I)        = ( P1 + P2 ) / 2.0_hp
-
+#endif
             ! Temperature [K] at midpoint of surface layer 
             TLON(I)        = ExtState%TK%Arr%Val(I,J,1)
 
@@ -427,7 +431,6 @@
             ! --> These variables won't be used at all...
             ULON(I)        = ExtState%U10M%Arr%Val(I,J)
             VLON(I)        = ExtState%V10M%Arr%Val(I,J)
- 
             ! Half box height at surface [m]
             BHT2(I)        = HcoState%Grid%BXHEIGHT_M%Val(I,J,1) / 2.d0
 
@@ -1461,8 +1464,6 @@
       ! Adjust threshold friction velocity to account
       ! for moisture and roughness
       DO I = 1, HcoState%NX
-!       write(*,*) "WTHR",WND_FRC_THR_SLT(i),FRC_THR_NCR_WTR(i),
-!     &            FRC_THR_NCR_DRG(i)
 
          WND_FRC_THR_SLT(I) =      ! [m s-1] Threshold friction velocity
                                    !         for saltation
@@ -1530,14 +1531,13 @@
       ! The vegetation effect has been eliminated in LND_FRC_MBL_GET
       ! and we also ignore MBL_BSN_FCT. (tdf, bmy, 1/25/07)
       DO I = 1, HcoState%NX     
-      IF (FLX_MSS_HRZ_SLT_TTL(I).GT.0.0d0) THEN
-!       write(*,*) "HFLX",FLX_MSS_HRZ_SLT_TTL(I),DNS_MDP(I),
-!     &            TPT_MDP(I),PRS_MDP(I),Q_H2O_VPR(I),
-!     &            WND_FRC_THR_SLT(I),WND_FRC_SLT(I),
-!     &            LND_FRC_MBL_SLICE(i),Inst%FLX_MSS_FDG_FCT,
-!     &            SRCE_FUNC_SLICE(I)
-      ENDIF
-
+       IF (FLX_MSS_HRZ_SLT_TTL(I).GT.0.0d0) THEN
+       write(*,*) "HFLX",FLX_MSS_HRZ_SLT_TTL(I),DNS_MDP(I),
+     &            TPT_MDP(I),PRS_MDP(I),Q_H2O_VPR(I),
+     &            WND_FRC_THR_SLT(I),WND_FRC_SLT(I),
+     &            LND_FRC_MBL_SLICE(i),Inst%FLX_MSS_FDG_FCT,
+     &            SRCE_FUNC_SLICE(I)
+       ENDIF
          FLX_MSS_HRZ_SLT_TTL(I) = FLX_MSS_HRZ_SLT_TTL(I) ! [kg m-2 s-1]
      &       * LND_FRC_MBL_SLICE(i)   ! [frc] Bare ground fraction
      &       * Inst%FLX_MSS_FDG_FCT   ! [frc] Global mass flux tuning
@@ -1600,10 +1600,6 @@
                ! what GEOS-CHEM wants is an increment in kg...So,
                ! multiply by DXYP [m2] and tm_adj [sec]
                !========================================================
-      IF ((FLX_MSS_VRT_DST(I,M).GT.0.0d0).AND.(M.EQ.2)) THEN
-!       write(*,*) "VFLX",FLX_MSS_VRT_DST(I,M),
-!     &           HcoState%Grid%AREA_M2%Val(I,LAT_IDX),TM_ADJ
-      ENDIF
                ! [kg/sec]
                Q_DST_TND_MBL(I,M) = FLX_MSS_VRT_DST(I,M)
      &            *HcoState%Grid%AREA_M2%Val(I,LAT_IDX)
@@ -3486,8 +3482,6 @@
 
          ! Added mobilisation constraint
          IF ( FLG_MBL(LON_IDX) ) THEN
-!            write(*,*) "THRS",LON_IDX,DNS_SLT,GRV_SFC,DMT_SLT_OPT,
-!     &        DNS_MDP(LON_IDX),DMT_SLT_OPT
             WND_FRC_THR_SLT(LON_IDX) =  SQRT(TMP1) * SQRT(ALPHA) ! [m s-1]
          ENDIF
       ENDDO
@@ -5510,6 +5504,7 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
 #elif   defined( GEOS_FP ) && defined( GRID025x03125 )
+      FLX_MSS_FDG_FCT = 1.0d0
 
 #if defined(NESTED_CH)
 
