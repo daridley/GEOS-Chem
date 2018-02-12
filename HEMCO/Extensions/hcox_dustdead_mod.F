@@ -182,6 +182,9 @@
       ! Fixed-size grid information
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
+
+      ! New emission scheme settings
+      LOGICAL, PARAMETER     :: LKOKDIST = .TRUE.
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -1495,7 +1498,8 @@
      &    WND_FRC_SLT,       ! O [m s-1] Saltating friction velocity
      &    WND_RFR,           ! I [m s-1] Wind speed at reference height
      &    WND_RFR_THR_SLT )  ! I [m s-1] Thresh. 10 m wind speed for saltation
-
+      
+      IF (LKOKDIST.EQ..FALSE.) THEN
       !=================================================================
       ! Compute horizontal streamwise mass flux, Zender et al., expr. (10)
       !=================================================================
@@ -1507,7 +1511,6 @@
                                !                streamwise mass flux
      &    WND_FRC_SLT,         ! I [m s-1] Saltating friction velocity
      &    WND_FRC_THR_SLT )    ! I [m s-1] Threshold friction vel for saltation
-
 !-----------------------------------------------------------------------------
 ! Prior to 1/25/07:
 ! We now multiply by the GOCART source function, and we will ignore
@@ -1531,13 +1534,6 @@
       ! The vegetation effect has been eliminated in LND_FRC_MBL_GET
       ! and we also ignore MBL_BSN_FCT. (tdf, bmy, 1/25/07)
       DO I = 1, HcoState%NX     
-       IF (FLX_MSS_HRZ_SLT_TTL(I).GT.0.0d0) THEN
-       write(*,*) "HFLX",FLX_MSS_HRZ_SLT_TTL(I),DNS_MDP(I),
-     &            TPT_MDP(I),PRS_MDP(I),Q_H2O_VPR(I),
-     &            WND_FRC_THR_SLT(I),WND_FRC_SLT(I),
-     &            LND_FRC_MBL_SLICE(i),Inst%FLX_MSS_FDG_FCT,
-     &            SRCE_FUNC_SLICE(I)
-       ENDIF
          FLX_MSS_HRZ_SLT_TTL(I) = FLX_MSS_HRZ_SLT_TTL(I) ! [kg m-2 s-1]
      &       * LND_FRC_MBL_SLICE(i)   ! [frc] Bare ground fraction
      &       * Inst%FLX_MSS_FDG_FCT   ! [frc] Global mass flux tuning
@@ -1555,7 +1551,28 @@
                                !            streamwise mass flux
      &    FLX_MSS_VRT_DST_TTL, ! O [kg/m2/s] Total vertical mass flux of dust
      &    MSS_FRC_CLY_SLICE )  ! I [frc] Mass fraction clay
-      
+      ELSE
+       !=================================================================
+       ! Compute vertical dust mass flux, see Kok et al., 2013 DAR
+       ! 04/2018
+       !=================================================================
+        CALL FLX_MSS_VRT_TTL_KOK13_GET(
+     &    HcoState,
+     &    DNS_MDP,             ! I [kg m-3] Midlayer density
+     &    FLG_MBL_SLICE,       ! I [flg] Mobilization candidate flag
+     &    FLX_MSS_VRT_DST_TTL, ! O [kg m-1 s-1] Vertically integrated streamwise mass flux
+     &    WND_FRC_SLT,         ! I [m s-1] Saltating friction velocity
+     &    WND_RFR,             ! I [m s-1] Wind speed at reference height
+     &    WND_FRC_THR_SLT,     ! I [m s-1] Threshold friction vel for saltation
+     &    MSS_FRC_CLY_SLICE)   ! I [frc] Mass fraction of clay
+
+        DO I = 1, HcoState%NX
+         FLX_MSS_VRT_DST_TTL(I) = FLX_MSS_VRT_DST_TTL(I) ! [kg m-2 s-1]
+     &       * LND_FRC_MBL_SLICE(i)   ! [frc] Bare ground fraction
+     &       * Inst%FLX_MSS_FDG_FCT   ! [frc] Global mass flux tuning
+        ENDDO
+       ENDIF
+
       !=================================================================
       ! Now, partition vertical dust mass flux into transport bins
       !
@@ -1566,8 +1583,8 @@
      &    HcoState%NX, 
      &    FLG_MBL_SLICE,       ! I [flg] Mobilization candidate flag
      &    FLX_MSS_VRT_DST,     ! O [kg m-2 s-1] Vertical mass flux of dust
-     &    FLX_MSS_VRT_DST_TTL) ! I [kg m-2 s-1] Total vertical mass flux of dus
-
+     &    FLX_MSS_VRT_DST_TTL, ! I [kg m-2 s-1] Total vertical mass flux of dus
+     &    LKOKDIST)
       !=================================================================
       ! Mask dust mass flux by tracer mass fraction at source
       !=================================================================
@@ -3695,8 +3712,9 @@
             !===========================================================
 
             ! [m3 m-3]
-            GWC_THR(LON_IDX) = 0.17D0 + 0.14D0* MSS_FRC_CLY_SLC(LON_IDX)
-
+!            GWC_THR(LON_IDX) = 0.17D0 + 0.14D0* MSS_FRC_CLY_SLC(LON_IDX)
+            GWC_THR(LON_IDX)=3.0d0*MSS_FRC_CLY_SLC(LON_IDX)*
+     &                       (0.17D0+0.14D0*MSS_FRC_CLY_SLC(LON_IDX))
             IF ( GWC_SFC(LON_IDX) > GWC_THR(LON_IDX) )
      &           FRC_THR_NCR_WTR(LON_IDX) = SQRT(1.0D0+1.21D0
      &           * (100.0D0 * (GWC_SFC(LON_IDX)-GWC_THR(LON_IDX)))
@@ -4296,6 +4314,126 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE FLX_MSS_VRT_TTL_KOK13_GET( HcoState, DNS_MDP, FLG_MBL,
+     &                                VRT_TTL, U_S, WND_RFR,U_ST,
+     &                                MSS_FRC_CLY)
+!
+!******************************************************************************
+!  Subroutine FLX_MSS_VRT_DST_TTL_KOK13_GET diagnoses total vertical
+!  mass flux without relying on horizontal saltating flux, but
+!  provides better relationship between the wind threshold and the
+!  fragmentation resistance of the soil (shown to improve agreement
+!  with
+!  in-situ measurements (Kok et al. 2013, PNAS - currently unpublished
+!  as of 4/2/13 DAR)
+!  Adapted from the implementation by Jasper Kok into the DEAD dust
+!  scheme within CESM
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) DNS_MDP (REAL*8 ) : Midlayer density  [g/m3  ]
+!  (2 ) FLG_MBL (LOGICAL) : Mobilization candidate flag [flag  ]
+!  (4 ) U_S     (REAL*8 ) : Surface friction velocity [m/s   ]
+!  (5 ) U_ST    (REAL*8 ) : Threshold friction spd for saltation [m/s   ]
+!  (6 ) WND_RFR (REAL*8 ) : 10m Wind Speed [m/s   ]
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (3 ) QS_TTL  (REAL*8 ) : Vertically integrated streamwise mass flux [kg/m/s]
+!******************************************************************************
+!
+
+      TYPE(HCO_State), POINTER :: HcoState
+      LOGICAL, INTENT(IN)  :: FLG_MBL(HcoState%NX)
+      REAL*8,  INTENT(IN)  :: DNS_MDP(HcoState%NX)
+      REAL*8,  INTENT(IN)  :: U_S(HcoState%NX)
+      REAL*8,  INTENT(IN)  :: U_ST(HcoState%NX)
+      REAL*8,  INTENT(IN)  :: WND_RFR(HcoState%NX)
+      REAL*8,  INTENT(OUT) :: VRT_TTL(HcoState%NX)
+      REAL*8,  INTENT(IN)  :: MSS_FRC_CLY(HcoState%NX)
+      ! Parameters
+      !------------------
+      ! [frc] Mass fraction clay limited to 0.20
+      REAL*8               :: MSS_FRC_CLY_VLD
+      REAL*8, PARAMETER    :: WND_FRC_THR_SLT_STD_MIN = 0.16D0
+      ! [m/s] minimum standardized soil threshold friction speed
+      REAL*8, parameter :: Cd0 = 4.4e-5             ! [dimless]
+      ! proportionality constant in calculation of dust emission
+      ! coefficient
+      REAL*8, parameter :: Ca = 2.7D0                 ! [dimless]
+      ! proportionality constant in scaling of dust emission exponent
+
+      REAL*8, parameter :: Ce = 2.0D0                 ! [dimless]
+       !proportionality constant scaling exponential dependence of dust
+       !emission
+       !coefficient on standardized soil threshold friction speed -jfk
+       REAL*8, parameter :: C_TUNE = 500.0D0             ! [dimless]
+       !global tuning constant for vertical dust flux; set to produce
+       !~same
+       !global dust flux in control sim (I_2000) as old parameterization
+       !-jfk
+       REAL*8, parameter :: DNS_MDP_STD = 1.2250D0    ! [kg/m3]
+       !density of air at standard pressure (101325) and temperature
+       !(293
+       !K)
+
+       ! [frc] Saltation constant Whi79 p. 4648, MaB97 p. 16422
+       REAL*8,  PARAMETER   :: CST_SLT = 2.61d0
+       ! conversion factor of 10m wind to thresh based on BLM_MBL
+       REAL*8,  PARAMETER   :: CNV_10M_THR = 0.0347436D0
+       ! number of tie points on Weibull wind distribution
+       REAL*8,  PARAMETER   :: N_U = 1000.0D0
+       !------------------
+       ! Local variables
+       !------------------
+
+       ! [frc] Ratio of wind friction threshold to wind friction
+       REAL*8               :: U_S_RAT
+       REAL*8               :: U_S0F, U_THR_LIM, U_S0_INTV
+       REAL*8               :: WND_FRC_THR_SLT_STD
+       REAL*8               :: Cd
+       REAL*8               :: PDFTOT !summation of PDF to check=1
+       REAL*8               :: FLX_FCT !factor increase in saltation
+
+       ! [idx] Counting index for lon
+       integer              :: lon_idx,U_IDX
+      ! Initialize
+      VRT_TTL(:) = 0.0D0
+
+      DO LON_IDX = 1, HcoState%NX
+        IF ( FLG_MBL(LON_IDX) .AND.
+     &        U_S(LON_IDX) > U_ST(LON_IDX) ) THEN
+
+
+         MSS_FRC_CLY_VLD = MIN(MSS_FRC_CLY(LON_IDX),0.2D0)  ! [frc]
+         ! standardized soil threshold friction speed
+         WND_FRC_THR_SLT_STD = U_ST(LON_IDX)*sqrt(DNS_MDP(LON_IDX)/
+     &                         DNS_MDP_STD)
+
+         ! New Kok et al. (2013) parameterization constant
+         ! representing soil resistance to erosion via saltation
+         ! bombardment (Kok et al., 2013, eq. 15)
+         Cd = Cd0 * exp(-Ce * (WND_FRC_THR_SLT_STD -
+     &        WND_FRC_THR_SLT_STD_MIN) / WND_FRC_THR_SLT_STD_MIN)
+!             the Cdust emission coefficient -jfk, DAR
+
+
+         VRT_TTL(LON_IDX) = VRT_TTL(LON_IDX) +  ! [kg m-1 s-1]
+     &      Cd*MSS_FRC_CLY_VLD*DNS_MDP(LON_IDX) *
+     &      ((U_S(LON_IDX)**2.0D0 - U_ST(LON_IDX)**2.0D0) /
+     &      WND_FRC_THR_SLT_STD) *
+     &      (U_S(LON_IDX)/U_ST(LON_IDX))**(Ca*(WND_FRC_THR_SLT_STD -
+     &      WND_FRC_THR_SLT_STD_MIN) / WND_FRC_THR_SLT_STD_MIN)
+         ! apply tuning to scale to match previous emissions
+         ! currently using Kok value for CESM tuning which involves
+         ! reducing by 95% 
+         VRT_TTL(LON_IDX) = VRT_TTL(LON_IDX)*C_TUNE
+        ENDIF
+       ENDDO
+      ! Return to calling program
+      END SUBROUTINE FLX_MSS_VRT_TTL_KOK13_GET
+!------------------------------------------------------------------------------
+
       SUBROUTINE DST_PSD_MSS( OVR_SRC_SNK_FRC, MSS_FRC_SRC,
      &                        OVR_SRC_SNK_MSS, NBINS, DST_SRC_NBR )
 !
@@ -4385,7 +4523,8 @@
 
       SUBROUTINE FLX_MSS_VRT_DST_PRT( Inst, NX, FLG_MBL,
      &                                FLX_MSS_VRT_DST,
-     &                                FLX_MSS_VRT_DST_TTL )
+     &                                FLX_MSS_VRT_DST_TTL,
+     &                                LKOKDIST )
 !
 !******************************************************************************
 !  Subroutine FLX_MSS_VRT_DST_PRT partitions total vertical mass flux of dust
@@ -4416,12 +4555,20 @@
       LOGICAL, INTENT(IN)   :: FLG_MBL(NX)
       REAL*8,  INTENT(IN)   :: FLX_MSS_VRT_DST_TTL(NX)
       REAL*8,  INTENT(OUT)  :: FLX_MSS_VRT_DST(NX,NBINS)
+      LOGICAL, INTENT(IN)   :: LKOKDIST
 
       ! Local variables
       INTEGER               :: LON_IDX   ! [idx] Counting index for lon
       INTEGER               :: SRC_IDX   ! [idx] Counting index for src
       INTEGER               :: SNK_IDX   ! [idx] Counting index for snk
       INTEGER               :: SNK_NBR   ! [nbr] Dimension size
+      REAL*8                :: KOK_DIST_SRC_FRC(4)
+
+      !assuming all emitted mass is simulated
+!      KOK_DIST_SRC_FRC = (/0.0509d0,0.1244d0,0.2565d0,0.5682d0/)
+      !assuming only the fraction within the size bin ranges is
+      !simulated
+      KOK_DIST_SRC_FRC = (/0.0435d0,0.1062d0,0.2190d0,0.4851d0/)
 
       !=================================================================
       ! FLX_MSS_VRT_DST_PRT begins here!
@@ -4438,12 +4585,18 @@
 
             ! Loop over source & sink indices
             DO SNK_IDX = 1, NBINS
-            DO SRC_IDX = 1, DST_SRC_NBR
+            IF(LKOKDIST.EQ..FALSE.) THEN
+             DO SRC_IDX = 1, DST_SRC_NBR
                FLX_MSS_VRT_DST(LON_IDX,SNK_IDX) = ! [kg m-2 s-1]
      &              FLX_MSS_VRT_DST(LON_IDX,SNK_IDX)
      &              + Inst%OVR_SRC_SNK_MSS(SRC_IDX,SNK_IDX)
      &              * FLX_MSS_VRT_DST_TTL(LON_IDX)
-            ENDDO
+             ENDDO
+            ELSE
+             FLX_MSS_VRT_DST(LON_IDX,SNK_IDX) =
+     &       KOK_DIST_SRC_FRC(SNK_IDX) *
+     &       FLX_MSS_VRT_DST_TTL(LON_IDX)
+            ENDIF
             ENDDO
          ENDIF
       ENDDO
