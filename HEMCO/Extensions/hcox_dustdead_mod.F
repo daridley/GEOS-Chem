@@ -184,7 +184,7 @@
       INTEGER, PARAMETER   :: MVT              = 14
 
       ! New emission scheme settings
-      LOGICAL, PARAMETER     :: LKOKDIST = .TRUE.
+      LOGICAL, PARAMETER     :: LKOKDIST = .FALSE.
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -1747,6 +1747,8 @@
          ! fxm Temporarily set mss_frc_cly used in mobilization to globally
          !     uniform SGS value of 0.20, and put excess mass fraction
          !     into sand
+!         MSS_FRC_CLY_OUT(I) = Inst%MSS_FRC_CLY(I,J)
+!         MSS_FRC_SND_OUT(I) = Inst%MSS_FRC_SND(I,J)
          MSS_FRC_CLY_OUT(I) = MSS_FRC_CLY_GLB
          MSS_FRC_SND_OUT(I) = Inst%MSS_FRC_SND(I,J) +
      &                        Inst%MSS_FRC_CLY(I,J) - 
@@ -3712,9 +3714,9 @@
             !===========================================================
 
             ! [m3 m-3]
-!            GWC_THR(LON_IDX) = 0.17D0 + 0.14D0* MSS_FRC_CLY_SLC(LON_IDX)
-            GWC_THR(LON_IDX)=3.0d0*MSS_FRC_CLY_SLC(LON_IDX)*
-     &                       (0.17D0+0.14D0*MSS_FRC_CLY_SLC(LON_IDX))
+            GWC_THR(LON_IDX) = 0.17D0 + 0.14D0* MSS_FRC_CLY_SLC(LON_IDX)
+!            GWC_THR(LON_IDX)=3.0d0*MSS_FRC_CLY_SLC(LON_IDX)*
+!     &                       (0.17D0+0.14D0*MSS_FRC_CLY_SLC(LON_IDX))
             IF ( GWC_SFC(LON_IDX) > GWC_THR(LON_IDX) )
      &           FRC_THR_NCR_WTR(LON_IDX) = SQRT(1.0D0+1.21D0
      &           * (100.0D0 * (GWC_SFC(LON_IDX)-GWC_THR(LON_IDX)))
