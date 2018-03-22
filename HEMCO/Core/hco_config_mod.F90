@@ -162,7 +162,7 @@ CONTAINS
     LOGICAL              :: EXISTS, NEST
     CHARACTER(LEN=255)   :: MSG,    LOC
     CHARACTER(LEN=2047)  :: CFDIR 
-    CHARACTER(LEN=2047)  :: LINE
+    CHARACTER(LEN=OPTLEN)  :: LINE
 
     !======================================================================
     ! Config_ReadFile begins here
@@ -550,7 +550,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: Char1
     CHARACTER(LEN=255)        :: Char2
     CHARACTER(LEN=255)        :: LOC, MSG 
-    CHARACTER(LEN=255)        :: LINE
+    CHARACTER(LEN=OPTLEN)        :: LINE
 
     ! Arrays
     INTEGER                   :: SplitInts(255)
@@ -998,7 +998,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)    :: am_I_Root   ! root CPU?
     INTEGER,          INTENT(IN)    :: STAT        ! 
-    CHARACTER(LEN=*), INTENT(IN)    :: LINE        ! 
+    CHARACTER(LEN=OPTLEN), INTENT(IN)    :: LINE        ! 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1496,7 +1496,7 @@ CONTAINS
     LOGICAL               :: Enabled, NewExt
     CHARACTER(LEN=255)    :: LOC
     CHARACTER(LEN=1023)   :: OPTS
-    CHARACTER(LEN=2047)   :: LINE
+    CHARACTER(LEN=OPTLEN)   :: LINE
     CHARACTER(LEN=2047)   :: SUBSTR(255), SPECS(255)
 
     !======================================================================
@@ -1666,7 +1666,7 @@ CONTAINS
     INTEGER               :: I, N, POS
     INTEGER               :: verb
     INTEGER               :: warn
-    CHARACTER(LEN=255)    :: LINE, LOC
+    CHARACTER(LEN=OPTLEN)    :: LINE, LOC
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
     LOGICAL               :: FOUND
@@ -2812,7 +2812,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER               :: N, OPT, STRLEN, RC
-    CHARACTER(LEN=255)    :: LINE
+    CHARACTER(LEN=OPTLEN)    :: LINE
     CHARACTER(LEN=255)    :: SUBSTR(255) 
     LOGICAL               :: EOF
 
@@ -2959,7 +2959,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
+    CHARACTER(LEN=OPTLEN), INTENT(IN   )    :: LINE 
     CHARACTER(LEN=255), INTENT(IN   )    :: SUBSTR(255) 
     INTEGER,            INTENT(IN   )    :: N
     INTEGER,            INTENT(IN   )    :: chrcl
@@ -3015,7 +3015,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(Ext),          POINTER          :: ExtList
-    CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
+    CHARACTER(LEN=OPTLEN), INTENT(IN   )    :: LINE 
     CHARACTER(LEN=255), INTENT(IN   )    :: SUBSTR(255) 
     INTEGER,            INTENT(IN   )    :: N
     INTEGER,            INTENT(IN   )    :: intcl

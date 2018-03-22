@@ -670,6 +670,7 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # Comment out so that HEMCO Standalone can be run globally at nativee resolution
 #    ifndef NEST
 #      $(error $(ERR_NEST))
 #    else
@@ -689,12 +690,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
+    # Comment out so that HEMCO Standalone can be run globally at nativee resolution
+#    ifndef NEST
+#      $(error $(ERR_NEST))
+#    else
+#      NEST_NEEDED    :=1
       USER_DEFS      += -DGRID025x03125
-    endif
+#    endif
   endif
 
   # %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%

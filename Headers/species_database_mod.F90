@@ -1992,7 +1992,7 @@ CONTAINS
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
+                              Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
@@ -2020,7 +2020,7 @@ CONTAINS
                               EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 1.0_fp,                       &
                               Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
+                              Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &

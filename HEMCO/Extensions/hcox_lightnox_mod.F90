@@ -1918,8 +1918,8 @@ CONTAINS
        WRITE( *,* ) '103     LightNOx         : on     NO'
        WRITE( *,* ) '    --> OTD-LIS scaling  :        1.00e-3'
          
-       CALL HCO_ERROR( HcoState%Config%Err, 'Wrong beta - see information in standard output', RC )
-       RETURN        
+!       CALL HCO_ERROR( HcoState%Config%Err, 'Wrong beta - see information in standard output', RC )
+!       RETURN        
  
     ENDIF
 
