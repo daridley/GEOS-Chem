@@ -773,7 +773,7 @@ CONTAINS
     LOGICAL                       :: FoundPEDGE
     LOGICAL                       :: FoundBXHEIGHT
     LOGICAL                       :: ERRBX, ERRZSFC 
-    REAL(hp)                      :: P1, P2
+    REAL(hp)                      :: P1, P2, PLAST
     REAL(hp), ALLOCATABLE, TARGET :: TmpTK(:,:,:)
     REAL(hp), POINTER             :: ThisTK(:,:,:)
     CHARACTER(LEN=255)            :: MSG
@@ -1130,7 +1130,7 @@ CONTAINS
 
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, L, P1, P2 )                                       &
+!$OMP PRIVATE( I, J, L, P1, P2, PLAST )                                &
 !$OMP SCHEDULE( DYNAMIC )
           DO L = 1, HcoState%NZ
           DO J = 1, HcoState%NY
@@ -1154,12 +1154,16 @@ CONTAINS
                 P1 = 101325.0_hp
                 P2 = HcoState%Grid%PEDGE%Val(I,J,1)
                 IF ( P2 == 0.0_hp ) THEN
-                   ERRZSFC = .TRUE.
-                ELSE
+                   !ERRZSFC = .TRUE.
+                   P2 = PLAST
+                ENDIF
+                !ELSE
                    HcoState%Grid%ZSFC%Val(I,J) = HcoState%Phys%Rdg0 &
                                                * ThisTK(I,J,1)      &
                                                * LOG( P1 / P2 )
-                ENDIF
+                   PLAST = P2
+                   
+                !ENDIF
              ENDIF
           ENDDO
           ENDDO

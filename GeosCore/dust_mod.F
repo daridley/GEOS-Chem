@@ -1268,10 +1268,10 @@
                LINTERP=.TRUE.
             ENDIF
 
-            ! There are always 5 + (NRHAER*2) preceding size-res dust
+            ! There are always 5 + (NRHAER*3) preceding size-res dust
             ! Each subsequent set is separated by a further distance of
             ! (NRHAER + NDUST)
-            NOUT = 5 + (NRHAER*2) + ((NRHAER+NDUST)*(W-1)) + N
+            NOUT = 5 + (NRHAER*3) + ((NRHAER+NDUST)*(W-1)) + N
 
             DO L = 1, LD21
             DO J = 1, JJPAR

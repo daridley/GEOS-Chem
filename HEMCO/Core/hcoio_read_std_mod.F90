@@ -3128,8 +3128,8 @@ CONTAINS
     INTEGER,  ALLOCATABLE :: CIDS(:,:)
     REAL(hp), POINTER     :: Vals(:)
     LOGICAL               :: Verb
-    CHARACTER(LEN=2047)   :: LINE
-    CHARACTER(LEN=255)    :: MSG, DUM, CNT
+    CHARACTER(LEN=10000)   :: LINE
+    CHARACTER(LEN=10000)    :: MSG, DUM, CNT
     CHARACTER(LEN=255)    :: LOC = 'HCOIO_ReadCountryValues (hcoio_dataread_mod.F90)'
 
     !======================================================================

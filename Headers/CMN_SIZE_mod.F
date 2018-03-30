@@ -396,6 +396,27 @@
 #endif
       REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
+#elif defined( GEOS_FP ) && defined( GRID025x03125 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-FP Nested EU Grid
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 1152
+      INTEGER               :: JGLOB      = 721
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !-----------------------------------------------------------------

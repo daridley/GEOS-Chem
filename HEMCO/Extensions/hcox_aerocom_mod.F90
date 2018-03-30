@@ -19,6 +19,7 @@ MODULE HCOX_AeroCom_Mod
 !
   USE HCO_Error_MOD
   USE HCO_Diagn_MOD
+  USE HCO_Types_Mod
   USE HCOX_TOOLS_MOD
   USE HCOX_State_MOD, ONLY : Ext_State
   USE HCO_State_MOD,  ONLY : HCO_State 
@@ -436,7 +437,7 @@ CONTAINS
     REAL(hp), ALLOCATABLE :: VolcLon(:)      ! Volcano longitude [deg E]
     REAL(hp), ALLOCATABLE :: VolcLat(:)      ! Volcano latitude  [deg N]
     LOGICAL               :: FileExist, EOF
-    CHARACTER(LEN=255)    :: ThisFile, ThisLine
+    CHARACTER(LEN=OPTLEN)    :: ThisFile, ThisLine
     CHARACTER(LEN=255)    :: MSG 
     CHARACTER(LEN=255)    :: LOC = 'ReadVolcTable (hcox_aerocom_mod.F90)' 
 

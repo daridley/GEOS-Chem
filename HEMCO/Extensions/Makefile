@@ -152,7 +152,7 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
 
 
 hcox_dustdead_mod.o         : hcox_dustdead_mod.F             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		          
 
 hcox_dustginoux_mod.o       : hcox_dustginoux_mod.F90         \
                               hcox_state_mod.o		      

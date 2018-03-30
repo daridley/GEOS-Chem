@@ -17,6 +17,7 @@ MODULE HCO_CharTools_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
+  USE HCO_Types_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -846,7 +847,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS
 !
-    CHARACTER(LEN=*), INTENT(  OUT) :: LINE        ! Next (valid) line in stream
+    CHARACTER(LEN=OPTLEN), INTENT(  OUT) :: LINE        ! Next (valid) line in stream
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
@@ -862,7 +863,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER             :: IOS
-    CHARACTER(LEN=2047) :: DUM
+    CHARACTER(LEN=10000) :: DUM
 
     !=================================================================
     ! GetNextLine begins here
@@ -910,7 +911,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(INOUT) :: LINE     ! Line
+    CHARACTER(LEN=OPTLEN), INTENT(INOUT) :: LINE     ! Line
     LOGICAL,          INTENT(INOUT) :: EOF      ! End of file?
     INTEGER,          INTENT(INOUT) :: RC       ! Return code 
 ! 
@@ -925,7 +926,7 @@ CONTAINS
 !
     INTEGER             :: IOS
     CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=4095) :: DUM
+    CHARACTER(LEN=OPTLEN) :: DUM
 
     !=================================================================
     ! HCO_ReadLine begins here!
@@ -937,7 +938,7 @@ CONTAINS
 
     ! Read a line from the file
     READ( LUN, '(a)', IOSTAT=IOS ) DUM
-
+    WRITE( 6,*) DUM
     ! IO Status < 0: EOF condition
     IF ( IOS < 0 ) THEN
        EOF = .TRUE.
@@ -957,7 +958,7 @@ CONTAINS
     ! Make sure that character string DUM is not longer than LINE
     IF ( LEN(TRIM(DUM)) > LEN(LINE) ) THEN
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, * ) ' Line is too long - cannot read line ', TRIM(DUM)   
+       WRITE( 6, * ) ' Line is too long - cannot read line ', TRIM(DUM),LEN(DUM),LEN(LINE) 
        WRITE( 6, * ) ' '
        WRITE( 6, * ) ' To fix this, increase length of argument `LINE` in '
        WRITE( 6, * ) ' HCO_ReadLine (hco_chartools_mod.F90)' 
